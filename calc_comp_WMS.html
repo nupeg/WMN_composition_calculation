@@ -1,0 +1,271 @@
+
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>CalcComp_WMS</title><meta name="generator" content="MATLAB 9.7"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-12-11"><meta name="DC.source" content="CalcComp_WMS.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="comment">%The indices 1,2 and 3 in the variables refer to water, MEG and NaCl, respectively</span>
+
+<span class="comment">%Input from user</span>
+rhoExp=1.11710; <span class="comment">%Density (g/cm3) [0.997 ~ 1.188]</span>
+kExp=16.11; <span class="comment">%Electrical conductivity (mS/cm) [0 ~ 650]</span>
+temp=298.15; <span class="comment">%Temperature (K) [278 ~ 363]</span>
+
+<span class="comment">%Optimization variables</span>
+<span class="comment">%w1 = Global mass fraction of water and w2 = Global mass fraction of MEG</span>
+w1 = optimvar(<span class="string">'w1'</span>, <span class="string">'LowerBound'</span>, 0, <span class="string">'UpperBound'</span>, 1);
+w2 = optimvar(<span class="string">'w2'</span>, <span class="string">'LowerBound'</span>, 0, <span class="string">'UpperBound'</span>, 1);
+
+<span class="comment">%Objective functions</span>
+<span class="comment">%c1 = (calc. density - exp. density) e c2 = (calc. elec. conductivity - exp. elec. conductivity)</span>
+c1 = fcn2optimexpr(@eq1, w1, w2, rhoExp, temp);
+c2 = fcn2optimexpr(@eq2, w1, w2, kExp, temp);
+
+<span class="comment">%Inicial guess</span>
+w0.w1=0;
+w0.w2=0;
+
+prob = optimproblem();
+
+<span class="comment">%Constraints definition</span>
+prob.Constraints.confn1 = c1 == 0;
+prob.Constraints.confn2 = c2 == 0;
+prob.Constraints.confn3 = w1 + w2 &lt;= 1;
+
+options = optimoptions(prob,<span class="string">'Display'</span>,<span class="string">'off'</span>, <span class="string">'ConstraintTolerance'</span>, 1e-12,<span class="string">'MaxIterations'</span>,10000,<span class="string">'MaxFunctionEvaluations'</span>,30000);
+[sol] = solve(prob, w0, <span class="string">'Options'</span>,options);
+
+<span class="comment">%Calculation of global mass fraction of NaCl</span>
+w3 = 1-sol.w1-sol.w2;
+
+<span class="comment">%Result print</span>
+answer = sprintf(<span class="string">'wwater: %0.4f  \nwMEG: %0.4f  \nwNaCl: %0.4f  '</span>,sol.w1, sol.w2, w3);
+disp(answer);
+
+
+<span class="keyword">function</span> f1 = eq1(w1, w2, rhoExp, temp)
+<span class="comment">%RLK parameters for excess volume equation</span>
+rho_a12=-0.04023;
+rho_a13=-0.86899;
+rho_a23=0.05343;
+rho_b12=0.01535;
+rho_b13=0.27976;
+rho_b23=0.01029;
+rho_a123=0.07473;
+
+<span class="comment">%Parameters for ideal solution definition</span>
+rho1_1=0.99709;
+rho1_2=-2.5008e-4;
+rho1_3=-3.8858e-6;
+rhoAp1_1=0.99578;
+rhoAp1_2=0.05085;
+rhoAp1_3=9.011;
+rho2_1=1.10978;
+rho2_2=-7.2273e-4;
+rhoAp2_1=2.80118;
+rhoAp2_2=0.01403;
+
+<span class="comment">%Temperature dependence in ideal solution definition</span>
+rhoT_water = (rho1_1)+(rho1_2)*(temp-298.15)+rho1_3*(temp-298.15)^2;
+rhoT_MEG = (rho2_1)+(rho2_2)*(temp-298.15);
+rhoAPT_water = rhoAp1_1+rhoAp1_2*exp((298.15-temp)/rhoAp1_3);
+rhoAPT_MEG = rhoAp2_1+rhoAp2_2*(temp-298.15);
+
+<span class="comment">%Density objective function</span>
+f1 = 1/((w1/(rhoT_water) + w2/(rhoT_MEG) + (((1-w1-w2)/(1-(1-w1-w2)))*(w1/rhoAPT_water + w2/rhoAPT_MEG))) + (w1*w2*(rho_a12 + rho_b12*(w1-w2)) + w1*(1-w1-w2)*(rho_a13 + rho_b13*(w1-(1-w1-w2))) + w2*(1-w1-w2)*(rho_a23 + rho_b23*(w2-(1-w1-w2))) + w1*w2*(1-w1-w2)*(rho_a123))) -rhoExp;
+<span class="keyword">end</span>
+
+<span class="keyword">function</span> f2 = eq2(w1, w2, kExp, temp)
+<span class="comment">%Parameters for electrical conductivity semiempirical model</span>
+p1_1=1.89776;
+p1_2=0.29898;
+p1_3=0.14840;
+p2_1=-472.483;
+p2_2=-80.666;
+p2_3=0.08426;
+n_1=0.90848;
+n_2=0.97513;
+n_3=-0.00607;
+p3_1=15.189;
+p3_2=718.683;
+p3_3=0.77385;
+p4_1=-0.06071;
+p4_2=1.94919;
+p4_3=0.87459;
+
+<span class="comment">%Molecular weight (g/mol)</span>
+Magua=18.015;
+MMEG=62.068;
+MNaCl=58.443;
+
+<span class="comment">%Electrical conductivity objective function</span>
+f2 = (((1-(w2/(1-(1-w1-w2))))^2*p1_1 + ((w2/(1-(1-w1-w2))))^2*p1_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((p1_1+p1_2)/2)*(1-(p1_3)))))*temp + ((1-(w2/(1-(1-w1-w2))))^2*p2_1 + ((w2/(1-(1-w1-w2))))^2*p2_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((p2_1+p2_2)/2)*(1-(p2_3))))))*(((1000*(1-w1-w2)/MNaCl)/(w1+w2))^((1-(w2/(1-(1-w1-w2))))^2*n_1 + ((w2/(1-(1-w1-w2))))^2*n_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((n_1+n_2)/2)*(1-(n_3))))))*exp(-(((1-(w2/(1-(1-w1-w2))))^2*p3_1 + ((w2/(1-(1-w1-w2))))^2*p3_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((p3_1+p3_2)/2)*(1-(p3_3)))))*((1000*(1-w1-w2)/MNaCl)/(w1+w2))/temp)+((1-(w2/(1-(1-w1-w2))))^2*p4_1 + ((w2/(1-(1-w1-w2))))^2*p4_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((p4_1+p4_2)/2)*(1-(p4_3)))))*((1000*(1-w1-w2)/MNaCl)/(w1+w2))) -kExp;
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2019b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%The indices 1,2 and 3 in the variables refer to water, MEG and NaCl, respectively
+
+%Input from user
+rhoExp=1.11710; %Density (g/cm3) [0.997 ~ 1.188]
+kExp=16.11; %Electrical conductivity (mS/cm) [0 ~ 650]
+temp=298.15; %Temperature (K) [278 ~ 363]
+
+%Optimization variables
+%w1 = Global mass fraction of water and w2 = Global mass fraction of MEG
+w1 = optimvar('w1', 'LowerBound', 0, 'UpperBound', 1);
+w2 = optimvar('w2', 'LowerBound', 0, 'UpperBound', 1);
+
+%Objective functions
+%c1 = (calc. density - exp. density) e c2 = (calc. elec. conductivity - exp. elec. conductivity)
+c1 = fcn2optimexpr(@eq1, w1, w2, rhoExp, temp);
+c2 = fcn2optimexpr(@eq2, w1, w2, kExp, temp);
+
+%Inicial guess
+w0.w1=0;
+w0.w2=0;
+
+prob = optimproblem();
+
+%Constraints definition
+prob.Constraints.confn1 = c1 == 0;
+prob.Constraints.confn2 = c2 == 0;
+prob.Constraints.confn3 = w1 + w2 <= 1;
+
+options = optimoptions(prob,'Display','off', 'ConstraintTolerance', 1e-12,'MaxIterations',10000,'MaxFunctionEvaluations',30000);
+[sol] = solve(prob, w0, 'Options',options);
+
+%Calculation of global mass fraction of NaCl
+w3 = 1-sol.w1-sol.w2;
+
+%Result print
+answer = sprintf('wwater: %0.4f  \nwMEG: %0.4f  \nwNaCl: %0.4f  ',sol.w1, sol.w2, w3);
+disp(answer);
+
+
+function f1 = eq1(w1, w2, rhoExp, temp)
+%RLK parameters for excess volume equation
+rho_a12=-0.04023;
+rho_a13=-0.86899;
+rho_a23=0.05343;
+rho_b12=0.01535;
+rho_b13=0.27976;
+rho_b23=0.01029;
+rho_a123=0.07473;
+
+%Parameters for ideal solution definition
+rho1_1=0.99709;
+rho1_2=-2.5008e-4;
+rho1_3=-3.8858e-6;
+rhoAp1_1=0.99578;
+rhoAp1_2=0.05085;
+rhoAp1_3=9.011;
+rho2_1=1.10978;
+rho2_2=-7.2273e-4;
+rhoAp2_1=2.80118;
+rhoAp2_2=0.01403;
+
+%Temperature dependence in ideal solution definition
+rhoT_water = (rho1_1)+(rho1_2)*(temp-298.15)+rho1_3*(temp-298.15)^2;
+rhoT_MEG = (rho2_1)+(rho2_2)*(temp-298.15);
+rhoAPT_water = rhoAp1_1+rhoAp1_2*exp((298.15-temp)/rhoAp1_3);
+rhoAPT_MEG = rhoAp2_1+rhoAp2_2*(temp-298.15);
+
+%Density objective function
+f1 = 1/((w1/(rhoT_water) + w2/(rhoT_MEG) + (((1-w1-w2)/(1-(1-w1-w2)))*(w1/rhoAPT_water + w2/rhoAPT_MEG))) + (w1*w2*(rho_a12 + rho_b12*(w1-w2)) + w1*(1-w1-w2)*(rho_a13 + rho_b13*(w1-(1-w1-w2))) + w2*(1-w1-w2)*(rho_a23 + rho_b23*(w2-(1-w1-w2))) + w1*w2*(1-w1-w2)*(rho_a123))) -rhoExp;
+end
+
+function f2 = eq2(w1, w2, kExp, temp)
+%Parameters for electrical conductivity semiempirical model
+p1_1=1.89776;
+p1_2=0.29898;
+p1_3=0.14840;
+p2_1=-472.483;
+p2_2=-80.666;
+p2_3=0.08426;
+n_1=0.90848;
+n_2=0.97513;
+n_3=-0.00607;
+p3_1=15.189;
+p3_2=718.683;
+p3_3=0.77385;
+p4_1=-0.06071;
+p4_2=1.94919;
+p4_3=0.87459;
+
+%Molecular weight (g/mol)
+Magua=18.015;
+MMEG=62.068;
+MNaCl=58.443;
+
+%Electrical conductivity objective function
+f2 = (((1-(w2/(1-(1-w1-w2))))^2*p1_1 + ((w2/(1-(1-w1-w2))))^2*p1_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((p1_1+p1_2)/2)*(1-(p1_3)))))*temp + ((1-(w2/(1-(1-w1-w2))))^2*p2_1 + ((w2/(1-(1-w1-w2))))^2*p2_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((p2_1+p2_2)/2)*(1-(p2_3))))))*(((1000*(1-w1-w2)/MNaCl)/(w1+w2))^((1-(w2/(1-(1-w1-w2))))^2*n_1 + ((w2/(1-(1-w1-w2))))^2*n_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((n_1+n_2)/2)*(1-(n_3))))))*exp(-(((1-(w2/(1-(1-w1-w2))))^2*p3_1 + ((w2/(1-(1-w1-w2))))^2*p3_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((p3_1+p3_2)/2)*(1-(p3_3)))))*((1000*(1-w1-w2)/MNaCl)/(w1+w2))/temp)+((1-(w2/(1-(1-w1-w2))))^2*p4_1 + ((w2/(1-(1-w1-w2))))^2*p4_2 + (2*(1-(w2/(1-(1-w1-w2))))*(w2/(1-(1-w1-w2)))*(((p4_1+p4_2)/2)*(1-(p4_3)))))*((1000*(1-w1-w2)/MNaCl)/(w1+w2))) -kExp;
+end
+
+
+
+##### SOURCE END #####
+--></body></html>
